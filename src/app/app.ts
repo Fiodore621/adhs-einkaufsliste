@@ -3,11 +3,26 @@ import {
   FormBuilder, ReactiveFormsModule,
   Validators
 } from '@angular/forms';
+import { withStorageSync } from '@angular-architects/ngrx-toolkit'
+import { signalStore, withState } from "@ngrx/signals";
 
+//muss vor der Component stehen
 type Article = {
   name: string;
   amount: number | null;
+  needed: boolean;
 }
+
+// type ListState = {
+//   articles: Article[] | null;
+// }
+// let shoppingListLoad  = localStorage.getItem('groceries')
+
+// if(typeof localStorage.getItem('groceries') === null) {
+//   let shoppingListLoad: ListState = {
+//     articles: [],
+//   }
+// }
 
 @Component({
   selector: 'app-root',
@@ -60,17 +75,36 @@ type Article = {
 
 
 export class App {
-  shoppingList = signal<Partial<Article>[]>([]);
+  // shoppingListLoad : ListState =
+  // {
+  //   // articles: [localStorage.getItem(this.shoppingListStore)],
+  // }
 
+  shoppingList = signal<Partial<Article>[]>([]);
+  historyList = signal<Partial<Article>[]>([]);
+
+  // loadList() {
+  //   this.shoppingList.update((shoppingListLoad.articles)
+  // }
+
+
+  // shoppingListStore = signalStore(
+  //   withState({ articles: this.shoppingList() }),
+  //   withStorageSync('groceries'),
+  // )
+  
   #fb = inject(FormBuilder);
 
   newArticleForm = this.#fb.nonNullable.group({
     name: this.#fb.nonNullable.control <string>('', Validators.required),
     amount: this.#fb.control<number | null>(null),
+    needed: true,
   });
 
   addItem() {
     const newArticle = this.newArticleForm.value;
     this.shoppingList.update((articles) => [...articles, newArticle]);
+    this.newArticleForm.reset();
+    console.log(this.shoppingList());
   }
 }
