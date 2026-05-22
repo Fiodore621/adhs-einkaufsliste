@@ -16,7 +16,7 @@ type Article = {
   template: `<header>
       <h1>EDeHS</h1>
       <h2>Welcome, scatterbrain!</h2>
-      <h4>Let's do some goddamn shopping.</h4>
+      <p>Let's do some goddamn shopping.</p>
     </header>
     <main>
       <section id="eingabe">
@@ -45,8 +45,12 @@ type Article = {
       <section id="einkaufsliste">
         <h3>Einkaufsliste</h3>
         <ul>
-          @for (item of Liste; track $index) {
-            <li>{{ item }}</li>
+          @for (item of shoppingList(); track $index) {
+            @if (item.amount){
+              <li>{{ item.name + ', ' + item.amount}}</li>
+            }@else {
+              <li>{{ item.name }}</li>
+            }
           }
         </ul>
       </section>
@@ -56,16 +60,17 @@ type Article = {
 
 
 export class App {
-  Liste = [''];
+  shoppingList = signal<Partial<Article>[]>([]);
 
   #fb = inject(FormBuilder);
 
   newArticleForm = this.#fb.nonNullable.group({
     name: this.#fb.nonNullable.control <string>('', Validators.required),
-    amount: this.#fb.control<number | null>,
+    amount: this.#fb.control<number | null>(null),
   });
 
   addItem() {
-
+    const newArticle = this.newArticleForm.value;
+    this.shoppingList.update((articles) => [...articles, newArticle]);
   }
 }
