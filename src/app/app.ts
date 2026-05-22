@@ -4,10 +4,15 @@ import {
   Validators
 } from '@angular/forms';
 
+type Article = {
+  name: string;
+  amount: number | null;
+}
+
 @Component({
   selector: 'app-root',
   imports: [ReactiveFormsModule],
-  // templateUrl: './app.html',
+  styleUrl: './app.css',
   template: `<header>
       <h1>EDeHS</h1>
       <h2>Welcome, scatterbrain!</h2>
@@ -16,17 +21,25 @@ import {
     <main>
       <section id="eingabe">
         <h3>Neuen Artikel hinzufügen</h3>
-        <form [formGroup]="artikelForm" (ngSubmit)="addItem()">
-          <label for="artikel">Artikelbezeichnung:</label>
+        <form [formGroup]="newArticleForm" (ngSubmit)="addItem()">
+          <label for="name">Artikelbezeichnung:</label>
           <input
-            formControlName="artikel"
+            formControlName="name"
             type="text"
-            id="artikel"
+            id="articleName"
             placeholder="Brot, Eier, Milch..."
           />
-          <label for="menge">Menge: </label>
-          <input formControlName="menge" type="number" id="menge" placeholder="42" />
-          <button [disabled]="!artikelForm.valid" type="submit">Hinzufügen!</button>
+          <label for="amount">Menge: </label>
+          <input 
+            formControlName="amount"
+            type="number"
+            id="articleAmount"
+            placeholder="42" 
+          />
+          <button
+            [disabled]="!newArticleForm.valid"
+            type="submit">Hinzufügen!
+          </button>
         </form>
       </section>
       <section id="einkaufsliste">
@@ -38,22 +51,21 @@ import {
         </ul>
       </section>
     </main>`,
-  styleUrl: './app.css',
 })
+
+
+
 export class App {
   Liste = [''];
-  protected readonly title = signal('edhs');
 
-  public fb = inject(FormBuilder);
+  #fb = inject(FormBuilder);
 
-  artikelForm = this.fb.nonNullable.group({
-    artikel: ['', Validators.required],
-    menge: [],
+  newArticleForm = this.#fb.nonNullable.group({
+    name: this.#fb.nonNullable.control <string>('', Validators.required),
+    amount: this.#fb.control<number | null>,
   });
 
   addItem() {
-    const test = this.artikelForm.getRawValue();
-    this.Liste.push(neuerArtikel.name);
-    console.log(this.Liste.length);
+
   }
 }
