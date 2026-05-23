@@ -6,13 +6,32 @@ import {
 import { withStorageSync } from '@angular-architects/ngrx-toolkit'
 import { signalStore, withState } from "@ngrx/signals";
 
-//muss vor der Component stehen
+// muss vor der Component stehen
+// Aufbau der Artikel-Objekte mit allen Attributen
 type Article = {
+  id: number;
   name: string;
   amount: number | null;
   needed: boolean;
+};
+
+// Aufbau der Listen-Zustände, kann zB um Filter erweitert werden
+type listState = {
+  articles: Article[];
+};
+
+// Zustand, den die Liste beim ersten Laden haben soll
+const initialState: listState = {
+  articles: [],
 }
 
+// reaktiver Snapshot mit allem, was eine Shopping Liste können muss
+const shoppingListStore = signalStore(
+// signalStore macht aus allen Properties der const initialState eigene Signals
+// wenn eine Property sich ändert, wird auch nur diese Property angefasst
+  withState(initialState),
+      withStorageSync('groceries'),
+  );
 // type ListState = {
 //   articles: Article[] | null;
 // }
@@ -88,10 +107,7 @@ export class App {
   // }
 
 
-  // shoppingListStore = signalStore(
-  //   withState({ articles: this.shoppingList() }),
-  //   withStorageSync('groceries'),
-  // )
+
   
   #fb = inject(FormBuilder);
 
