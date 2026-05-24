@@ -3,8 +3,8 @@ import {
   FormBuilder, ReactiveFormsModule,
   Validators
 } from '@angular/forms';
-import { withStorageSync } from '@angular-architects/ngrx-toolkit'
-import { signalStore, withState } from "@ngrx/signals";
+import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
+import { signalStore, withMethods, withState } from "@ngrx/signals";
 
 // muss vor der Component stehen
 // Aufbau der Artikel-Objekte mit allen Attributen
@@ -15,6 +15,20 @@ type Article = {
   needed: boolean;
 };
 
+const Beispiel1: Article = {
+  id: 1,
+  name: "Katzen",
+  amount: 2,
+  needed: true,
+}
+
+const Beispiel2: Article = {
+  id: 2,
+  name: "Enten",
+  amount: 5,
+  needed: true,
+}
+
 // Aufbau der Listen-Zustände, kann zB um Filter erweitert werden
 type listState = {
   articles: Article[];
@@ -22,7 +36,7 @@ type listState = {
 
 // Zustand, den die Liste beim ersten Laden haben soll
 const initialState: listState = {
-  articles: [],
+  articles: [Beispiel1, Beispiel2],
 }
 
 // reaktiver Snapshot mit allem, was eine Shopping Liste können muss
@@ -30,18 +44,14 @@ const shoppingListStore = signalStore(
 // signalStore macht aus allen Properties der const initialState eigene Signals
 // wenn eine Property sich ändert, wird auch nur diese Property angefasst
   withState(initialState),
-      withStorageSync('groceries'),
+  withMethods(
+    
+  )
+// speichert den Zustand der Liste automatisch, wenn er sich ändert
+// abrufbar ist er dann über den Key: groceries
+  withStorageSync('groceries'),
   );
-// type ListState = {
-//   articles: Article[] | null;
-// }
-// let shoppingListLoad  = localStorage.getItem('groceries')
 
-// if(typeof localStorage.getItem('groceries') === null) {
-//   let shoppingListLoad: ListState = {
-//     articles: [],
-//   }
-// }
 
 @Component({
   selector: 'app-root',
@@ -87,6 +97,15 @@ const shoppingListStore = signalStore(
             }
           }
         </ul>
+        <ol>
+          @for (article of this.toBuy.articles(); track article.id) {
+            @if (article.amount){
+              <li>{{ article.name + ', ' + article.amount }}</li>
+            } @else {
+              <li>{{ article.name }}</li>
+            }
+          }
+        </ol>
       </section>
     </main>`,
 })
@@ -106,8 +125,31 @@ export class App {
   //   this.shoppingList.update((shoppingListLoad.articles)
   // }
 
+  // toBuy = inject(shoppingListStore);
+// initialState: listState = {
+//   articles: [{
+//   id: 2,
+//   name: "Enten",
+//   amount: 5,
+//   needed: true,
+// }, {
+//   id: 2,
+//   name: "Enten",
+//   amount: 5,
+//   needed: true,
+// }],
+// }
+//   // reaktiver Snapshot mit allem, was eine Shopping Liste können muss
+// shoppingListStore = signalStore(
+// // signalStore macht aus allen Properties der const initialState eigene Signals
+// // wenn eine Property sich ändert, wird auch nur diese Property angefasst
+//   withState(this.initialState),
+// // speichert den Zustand der Liste automatisch, wenn er sich ändert
+// // abrufbar ist er dann über den Key: groceries
+//   withStorageSync('groceries'),
+//   );
 
-
+  toBuy = new shoppingListStore;
   
   #fb = inject(FormBuilder);
 
@@ -122,5 +164,7 @@ export class App {
     this.shoppingList.update((articles) => [...articles, newArticle]);
     this.newArticleForm.reset();
     console.log(this.shoppingList());
+
+    this.toBuy.articles.update((items) => [...items, newArticle]);
   }
 }
