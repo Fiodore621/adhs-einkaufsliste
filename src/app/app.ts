@@ -4,26 +4,27 @@ import {
   Validators
 } from '@angular/forms';
 import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
-import { signalStore, withMethods, withState } from "@ngrx/signals";
+import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
+import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProvider';
 
 // muss vor der Component stehen
 // Aufbau der Artikel-Objekte mit allen Attributen
 type Article = {
-  id: number;
+  id: string;
   name: string;
   amount: number | null;
   needed: boolean;
 };
 
 const Beispiel1: Article = {
-  id: 1,
+  id: "1",
   name: "Katzen",
   amount: 2,
   needed: true,
 }
 
 const Beispiel2: Article = {
-  id: 2,
+  id: "2",
   name: "Enten",
   amount: 5,
   needed: true,
@@ -41,15 +42,26 @@ const initialState: listState = {
 
 // reaktiver Snapshot mit allem, was eine Shopping Liste können muss
 const shoppingListStore = signalStore(
-// signalStore macht aus allen Properties der const initialState eigene Signals
+// signalStore macht aus allen Properties der const initialState eigene read only-Signals
 // wenn eine Property sich ändert, wird auch nur diese Property angefasst
   withState(initialState),
   withMethods(
-    
-  )
+    // factory function, die einen bearbeitbaren Zustand herstellt (?)
+    (store) => ({
+      // function, die am Ende gecalled wird, die aber keinen Return-Wert ausgibt,
+      // daher : void
+      updateList(item: Partial<Article>): void {
+        // nimmt die Instance der ff als Argument und bearbeitet den Zustand
+        // fügt den bestehenden Artikeln des States den neuen hinzu
+        patchState(store, (state) => ({
+          articles: {...state.articles, item},
+      }));
+      },
+    })
+  ),
 // speichert den Zustand der Liste automatisch, wenn er sich ändert
 // abrufbar ist er dann über den Key: groceries
-  withStorageSync('groceries'),
+  // withStorageSync('groceries'),
   );
 
 
@@ -98,7 +110,7 @@ const shoppingListStore = signalStore(
           }
         </ul>
         <ol>
-          @for (article of this.toBuy.articles(); track article.id) {
+          @for (article of this.toBuy.articles(); track $index) {
             @if (article.amount){
               <li>{{ article.name + ', ' + article.amount }}</li>
             } @else {
@@ -113,58 +125,36 @@ const shoppingListStore = signalStore(
 
 
 export class App {
-  // shoppingListLoad : ListState =
-  // {
-  //   // articles: [localStorage.getItem(this.shoppingListStore)],
-  // }
+
 
   shoppingList = signal<Partial<Article>[]>([]);
   historyList = signal<Partial<Article>[]>([]);
 
-  // loadList() {
-  //   this.shoppingList.update((shoppingListLoad.articles)
-  // }
 
-  // toBuy = inject(shoppingListStore);
-// initialState: listState = {
-//   articles: [{
-//   id: 2,
-//   name: "Enten",
-//   amount: 5,
-//   needed: true,
-// }, {
-//   id: 2,
-//   name: "Enten",
-//   amount: 5,
-//   needed: true,
-// }],
-// }
-//   // reaktiver Snapshot mit allem, was eine Shopping Liste können muss
-// shoppingListStore = signalStore(
-// // signalStore macht aus allen Properties der const initialState eigene Signals
-// // wenn eine Property sich ändert, wird auch nur diese Property angefasst
-//   withState(this.initialState),
-// // speichert den Zustand der Liste automatisch, wenn er sich ändert
-// // abrufbar ist er dann über den Key: groceries
-//   withStorageSync('groceries'),
-//   );
 
   toBuy = new shoppingListStore;
   
   #fb = inject(FormBuilder);
 
   newArticleForm = this.#fb.nonNullable.group({
+    id: dateTimestampProvider.now.toString(),
     name: this.#fb.nonNullable.control <string>('', Validators.required),
     amount: this.#fb.control<number | null>(null),
     needed: true,
   });
 
   addItem() {
-    const newArticle = this.newArticleForm.value;
-    this.shoppingList.update((articles) => [...articles, newArticle]);
-    this.newArticleForm.reset();
-    console.log(this.shoppingList());
+    const newArticle : Partial<Article> = {
+      id: this.newArticleForm.value.id,
+      name: this.newArticleForm.value.name,
+      amount: this.newArticleForm.value.amount,
+      needed: true,
+    };
+    // this.shoppingList.update((articles) => [...articles, newArticle]);
+    // this.newArticleForm.reset();
+    // console.log(this.shoppingList());
 
-    this.toBuy.articles.update((items) => [...items, newArticle]);
+    this.toBuy.updateList(newArticle);
+    console.log(this.toBuy.articles());
   }
 }
