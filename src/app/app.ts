@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import {
   FormBuilder, ReactiveFormsModule,
   Validators
@@ -7,33 +7,40 @@ import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
 import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
 import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProvider';
 
-// muss vor der Component stehen
-// Aufbau der Artikel-Objekte mit allen Attributen
+// VERWENDETE TYPEN
+
+// Artikel-Objekte mit allen Attributen
 type Article = {
-  id: string;
+  id: number;
   name: string;
-  amount: number | null;
-  needed: boolean;
+  amount: string | null;
+  isNeeded: boolean;
 };
 
-const Beispiel1: Article = {
-  id: "1",
-  name: "Katzen",
-  amount: 2,
-  needed: true,
-}
-
-const Beispiel2: Article = {
-  id: "2",
-  name: "Enten",
-  amount: 5,
-  needed: true,
-}
-
-// Aufbau der Listen-Zustände, kann zB um Filter erweitert werden
+// Listen-Zustände, kann zB um Filter erweitert werden
 type listState = {
   articles: Article[];
 };
+
+
+// VERWENDETE VARIABLEN
+
+// Default zum Prüfen
+const Beispiel1: Article = {
+  id: 1,
+  name: "Katzenfutter",
+  amount: '2 Säcke',
+  isNeeded: true,
+}
+
+const Beispiel2: Article = {
+  id: 2,
+  name: "Entenfutter",
+  amount: '5 Portionen',
+  isNeeded: true,
+}
+
+const groceries = signal<Article[]>([]);
 
 // Zustand, den die Liste beim ersten Laden haben soll
 const initialState: listState = {
@@ -48,15 +55,7 @@ const shoppingListStore = signalStore(
   withMethods(
     // factory function, die einen bearbeitbaren Zustand herstellt (?)
     (store) => ({
-      // function, die am Ende gecalled wird, die aber keinen Return-Wert ausgibt,
-      // daher : void
-      updateList(item: Partial<Article>): void {
-        // nimmt die Instance der ff als Argument und bearbeitet den Zustand
-        // fügt den bestehenden Artikeln des States den neuen hinzu
-        patchState(store, (state) => ({
-          articles: {...state.articles, item},
-      }));
-      },
+      addArticle
     })
   ),
 // speichert den Zustand der Liste automatisch, wenn er sich ändert
@@ -77,69 +76,37 @@ const shoppingListStore = signalStore(
     <main>
       <section id="eingabe">
         <h3>Neuen Artikel hinzufügen</h3>
-        <form [formGroup]="newArticleForm" (ngSubmit)="addItem()">
-          <label for="name">Artikelbezeichnung:</label>
-          <input
-            formControlName="name"
-            type="text"
-            id="articleName"
-            placeholder="Brot, Eier, Milch..."
-          />
-          <label for="amount">Menge: </label>
-          <input 
-            formControlName="amount"
-            type="number"
-            id="articleAmount"
-            placeholder="42" 
-          />
-          <button
-            [disabled]="!newArticleForm.valid"
-            type="submit">Hinzufügen!
-          </button>
+        <form>
+
         </form>
       </section>
       <section id="einkaufsliste">
         <h3>Einkaufsliste</h3>
-        <ul>
-          @for (item of shoppingList(); track $index) {
-            @if (item.amount){
-              <li>{{ item.name + ', ' + item.amount}}</li>
-            }@else {
-              <li>{{ item.name }}</li>
-            }
-          }
-        </ul>
-        <ol>
-          @for (article of this.toBuy.articles(); track $index) {
-            @if (article.amount){
-              <li>{{ article.name + ', ' + article.amount }}</li>
-            } @else {
-              <li>{{ article.name }}</li>
-            }
-          }
-        </ol>
+
       </section>
     </main>`,
 })
 
 
 
-export class App {
+export class App implements OnInit{
 
 
-  shoppingList = signal<Partial<Article>[]>([]);
-  historyList = signal<Partial<Article>[]>([]);
+  // shoppingList = signal<Partial<Article>[]>([]);
+
+  ngOnInit(): void {
+    
+  }
 
 
-
-  toBuy = new shoppingListStore;
+  store = new shoppingListStore;
   
   #fb = inject(FormBuilder);
 
   newArticleForm = this.#fb.nonNullable.group({
-    id: dateTimestampProvider.now.toString(),
+    id: dateTimestampProvider.now(),
     name: this.#fb.nonNullable.control <string>('', Validators.required),
-    amount: this.#fb.control<number | null>(null),
+    amount: this.#fb.control<string | null>(null),
     needed: true,
   });
 
@@ -148,13 +115,13 @@ export class App {
       id: this.newArticleForm.value.id,
       name: this.newArticleForm.value.name,
       amount: this.newArticleForm.value.amount,
-      needed: true,
+      isNeeded: true,
     };
     // this.shoppingList.update((articles) => [...articles, newArticle]);
     // this.newArticleForm.reset();
     // console.log(this.shoppingList());
 
-    this.toBuy.updateList(newArticle);
-    console.log(this.toBuy.articles());
+    this.store.updateList(newArticle);
+    console.log(this.store.articles());
   }
 }
