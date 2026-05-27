@@ -3,6 +3,7 @@ import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
 import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
 import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProvider';
+import { timestamp } from 'rxjs';
 
 // VERWENDETE TYPEN
 
@@ -21,7 +22,13 @@ type listState = {
 
 
 // VERWENDETE VARIABLEN
-
+  // Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
+  const newArticle = signal<Article>({
+    id: 0,
+    name: '',
+    amount: '',
+    isNeeded: true
+  });
 
 // Default zum Prüfen
 const Beispiel1: Article = {
@@ -42,7 +49,7 @@ const initialState: listState = {
   articles: [Beispiel1, Beispiel2],
 }
 
-// reaktiver Snapshot mit allem, was eine Shopping Liste können muss
+  // reaktiver Snapshot mit allem, was eine Shopping Liste können muss
 const shoppingListStore = signalStore(
 // signalStore macht aus allen Properties der const initialState eigene read only-Signals
 // wenn eine Property sich ändert, wird auch nur diese Property angefasst
@@ -50,8 +57,17 @@ const shoppingListStore = signalStore(
   withMethods(
     // factory function, die einen bearbeitbaren Zustand herstellt (?)
     (store) => ({
-      addArticle() {
+      addArticle(name: string) {
 
+        const article: Article = {
+          id: timestamp<number>(),
+          name: newArticle.name().value()
+        }
+        // (toBuy: Partial<Article>) => ({name, isNeeded: true})
+        
+        patchState(store, (state) => ({
+          articles: [...state.articles, ]
+        }))
       }
     })
   ),
@@ -97,24 +113,29 @@ const shoppingListStore = signalStore(
 export class App{
 
 
-  // shoppingList = signal<Partial<Article>[]>([]);
 
-  // Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
-  newArticle = signal<Article>({
-    id: 0,
-    name: '',
-    amount: '',
-    isNeeded: true
-  });
 
-  // Instanz des SignalStores, auf den zugegriffen werden soll
+
+  
   store = new shoppingListStore;
   
+  
+  
+  
+  // Instanz des SignalStores, auf den zugegriffen werden soll
+  
+  
  
-
+  // Form-Objekt, schemaPath gibt Validation-Regeln an
   newArticleForm = form(this.newArticle, (schemaPath) => {
     required(schemaPath.name, {message: 'Na, also wenigstens ein Stichwort solltest du schon schreiben.'})
-  });
+    },
+    {
+      submission: {
+        action: this.store.addArticle()
+      }
+    }
+  );
 
   addItem() {
 
