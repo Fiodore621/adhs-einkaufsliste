@@ -1,8 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import {
-  FormBuilder, ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
 import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
 import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProvider';
@@ -13,7 +10,7 @@ import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProv
 type Article = {
   id: number;
   name: string;
-  amount: string | null;
+  amount: string;  //warum kriege ich den Error, wenn ich hier | null eingebe?
   isNeeded: boolean;
 };
 
@@ -25,6 +22,7 @@ type listState = {
 
 // VERWENDETE VARIABLEN
 
+
 // Default zum Prüfen
 const Beispiel1: Article = {
   id: 1,
@@ -32,15 +30,12 @@ const Beispiel1: Article = {
   amount: '2 Säcke',
   isNeeded: true,
 }
-
 const Beispiel2: Article = {
   id: 2,
   name: "Entenfutter",
   amount: '5 Portionen',
   isNeeded: true,
 }
-
-const groceries = signal<Article[]>([]);
 
 // Zustand, den die Liste beim ersten Laden haben soll
 const initialState: listState = {
@@ -55,7 +50,9 @@ const shoppingListStore = signalStore(
   withMethods(
     // factory function, die einen bearbeitbaren Zustand herstellt (?)
     (store) => ({
-      addArticle
+      addArticle() {
+
+      }
     })
   ),
 // speichert den Zustand der Liste automatisch, wenn er sich ändert
@@ -66,7 +63,7 @@ const shoppingListStore = signalStore(
 
 @Component({
   selector: 'app-root',
-  imports: [ReactiveFormsModule],
+  imports: [FormField, FormRoot],
   styleUrl: './app.css',
   template: `<header>
       <h1>EDeHS</h1>
@@ -76,8 +73,16 @@ const shoppingListStore = signalStore(
     <main>
       <section id="eingabe">
         <h3>Neuen Artikel hinzufügen</h3>
-        <form>
-
+        <form [formRoot]="newArticleForm">
+          <label>
+            Neuer Artikel: 
+            <input type="text" [formField]="newArticleForm.name" />
+          </label>
+          <label>
+            Menge: 
+            <input type="text" [formField]="newArticleForm.amount" />
+          </label>
+          <button type="submit">Artikel hinzufügen</button>
         </form>
       </section>
       <section id="einkaufsliste">
@@ -89,39 +94,29 @@ const shoppingListStore = signalStore(
 
 
 
-export class App implements OnInit{
+export class App{
 
 
   // shoppingList = signal<Partial<Article>[]>([]);
 
-  ngOnInit(): void {
-    
-  }
+  // Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
+  newArticle = signal<Article>({
+    id: 0,
+    name: '',
+    amount: '',
+    isNeeded: true
+  });
 
-
+  // Instanz des SignalStores, auf den zugegriffen werden soll
   store = new shoppingListStore;
   
-  #fb = inject(FormBuilder);
+ 
 
-  newArticleForm = this.#fb.nonNullable.group({
-    id: dateTimestampProvider.now(),
-    name: this.#fb.nonNullable.control <string>('', Validators.required),
-    amount: this.#fb.control<string | null>(null),
-    needed: true,
+  newArticleForm = form(this.newArticle, (schemaPath) => {
+    required(schemaPath.name, {message: 'Na, also wenigstens ein Stichwort solltest du schon schreiben.'})
   });
 
   addItem() {
-    const newArticle : Partial<Article> = {
-      id: this.newArticleForm.value.id,
-      name: this.newArticleForm.value.name,
-      amount: this.newArticleForm.value.amount,
-      isNeeded: true,
-    };
-    // this.shoppingList.update((articles) => [...articles, newArticle]);
-    // this.newArticleForm.reset();
-    // console.log(this.shoppingList());
 
-    this.store.updateList(newArticle);
-    console.log(this.store.articles());
   }
 }
