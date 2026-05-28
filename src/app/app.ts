@@ -31,13 +31,29 @@ import { ArticleForm } from './types';
         <h3>Einkaufsliste</h3>
         <ul>
           @for (article of store.articles(); track article.id) {
-            <li>
-              {{ article.name + ', ' + article.amount }}
-              <span
-                ><button (click)="store.updateArticle(article.id, formValues())">&#10003;</button>
-                <button (click)="store.removeArticle(article.id)">❌</button></span
-              >
-            </li>
+            @if (article.isDone === false) {
+              <li>
+                {{ article.name + ', ' + article.amount }}
+                <span
+                  ><button (click)="store.updateArticle(article.id, formValues())">&#10003;</button>
+                  <button (click)="store.removeArticle(article.id)">❌</button></span
+                >
+              </li>
+            }
+          }
+        </ul>
+        <h3>Vorschläge</h3>
+        <ul>
+          @for (article of store.articles(); track article.id) {
+            @if (article.isDone === true) {
+              <li>
+                {{ article.name + ', ' + article.amount }}
+                <span
+                  ><button (click)="store.updateArticle(article.id, formValues())">&#10003;</button>
+                  <button (click)="store.removeArticle(article.id)">❌</button></span
+                >
+              </li>
+            }
           }
         </ul>
       </section>

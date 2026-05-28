@@ -32,9 +32,14 @@ export const ShoppingListStore = signalStore(
     },
     updateArticle(id: string, { isDone }: ArticleForm) {
       patchState(store, (state) => ({
-        articles: state.articles.map((article) =>
-          article.id === id ? { ...article, isDone } : article,
-        ),
+        articles: state.articles.map((article) => {
+          if (article.id === id) {
+            article.isDone === true ? (isDone = false) : (isDone = true);
+            return { ...article, isDone };
+          } else {
+            return article;
+          }
+        }),
       }));
     },
     removeArticle(id: string) {
@@ -43,7 +48,8 @@ export const ShoppingListStore = signalStore(
       }));
     },
   })),
-  // speichert den Zustand der Liste automatisch im Browser, wenn er sich ändert
+  // speichert den Zustand der Liste automatisch im Browser, wenn sich
+  // am Key 'articles' etwas ändert
   // abrufbar ist er dann über den Key: articles
   withStorageSync('articles'),
 );
