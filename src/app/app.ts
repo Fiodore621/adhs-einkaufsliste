@@ -2,8 +2,6 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { updateState, withStorageSync } from '@angular-architects/ngrx-toolkit'
 import { patchState, signalStore, withMethods, withState } from "@ngrx/signals";
-import { dateTimestampProvider } from 'rxjs/internal/scheduler/dateTimestampProvider';
-import { timestamp } from 'rxjs';
 
 // VERWENDETE TYPEN
 
@@ -22,15 +20,16 @@ type listState = {
 
 
 // VERWENDETE VARIABLEN
-  // Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
-  const newArticle = signal<Article>({
-    id: 0,
-    name: '',
-    amount: '',
-    isNeeded: true
-  });
 
-// Default zum Prüfen
+  // Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
+ const newArticle = signal<Article>({
+  id: 0,
+  name: '',
+  amount: '',
+  isNeeded: true  
+  }); 
+
+// Default zum Testen
 const Beispiel1: Article = {
   id: 1,
   name: "Katzenfutter",
@@ -57,29 +56,30 @@ const shoppingListStore = signalStore(
   withMethods(
     // factory function, die einen bearbeitbaren Zustand herstellt (?)
     (store) => ({
-      addArticle(name: string) {
+      addArticle() {
 
         const article: Article = {
-          id: timestamp<number>(),
-          name: newArticle.name().value()
+          id: store.articles().length,
+          name: newArticle().name,
+          amount: newArticle().amount,
+          isNeeded: true
         }
-        // (toBuy: Partial<Article>) => ({name, isNeeded: true})
         
         patchState(store, (state) => ({
-          articles: [...state.articles, ]
+          articles: [...state.articles, article]
         }))
       }
     })
   ),
-// speichert den Zustand der Liste automatisch, wenn er sich ändert
-// abrufbar ist er dann über den Key: groceries
-  // withStorageSync('groceries'),
+// speichert den Zustand der Liste automatisch im Browser, wenn er sich ändert
+// abrufbar ist er dann über den Key: articles
+  withStorageSync('articles'),
   );
 
 
 @Component({
   selector: 'app-root',
-  imports: [FormField, FormRoot],
+  imports: [FormField, FormRoot],  // FormRoot könnte die Submission-Lösung sein
   styleUrl: './app.css',
   template: `<header>
       <h1>EDeHS</h1>
@@ -89,7 +89,7 @@ const shoppingListStore = signalStore(
     <main>
       <section id="eingabe">
         <h3>Neuen Artikel hinzufügen</h3>
-        <form [formRoot]="newArticleForm">
+        <form>
           <label>
             Neuer Artikel: 
             <input type="text" [formField]="newArticleForm.name" />
@@ -98,12 +98,19 @@ const shoppingListStore = signalStore(
             Menge: 
             <input type="text" [formField]="newArticleForm.amount" />
           </label>
-          <button type="submit">Artikel hinzufügen</button>
+          <button
+          type="submit"
+          (click)="addItem()"
+          >Artikel hinzufügen</button>
         </form>
       </section>
       <section id="einkaufsliste">
         <h3>Einkaufsliste</h3>
-
+        <ul>
+          @for (article of store.articles(); track article.id) {
+            <li> {{ article.name + ', ' + article.amount}}</li>
+          }
+        </ul>
       </section>
     </main>`,
 })
@@ -113,31 +120,20 @@ const shoppingListStore = signalStore(
 export class App{
 
 
-
-
-
-  
-  store = new shoppingListStore;
-  
-  
-  
-  
   // Instanz des SignalStores, auf den zugegriffen werden soll
-  
+  store = new shoppingListStore;  
   
  
   // Form-Objekt, schemaPath gibt Validation-Regeln an
-  newArticleForm = form(this.newArticle, (schemaPath) => {
+  newArticleForm = form(newArticle, (schemaPath) => {
     required(schemaPath.name, {message: 'Na, also wenigstens ein Stichwort solltest du schon schreiben.'})
     },
-    {
-      submission: {
-        action: this.store.addArticle()
-      }
-    }
   );
 
+  // führt die addArticle Methode aus, wenn submit gedrückt wird
+  // sollte das nur tun, wenn die Felder befüllt sind
+  // speichert momentan trotzdem einfach das newArticle Signal dazu
   addItem() {
-
+    this.store.addArticle()
   }
 }
