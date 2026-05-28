@@ -31,13 +31,13 @@ type listState = {
 
 // Default zum Testen
 const Beispiel1: Article = {
-  id: 1,
+  id: 0,
   name: "Katzenfutter",
   amount: '2 Säcke',
   isNeeded: true,
 }
 const Beispiel2: Article = {
-  id: 2,
+  id: 1,
   name: "Entenfutter",
   amount: '5 Portionen',
   isNeeded: true,
