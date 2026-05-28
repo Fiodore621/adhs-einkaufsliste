@@ -1,78 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { form, FormField, required } from '@angular/forms/signals';
-import { withStorageSync } from '@angular-architects/ngrx-toolkit';
-import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
-
-// VERWENDETE TYPEN
-
-// Artikel-Objekte mit allen Attributen
-type Article = {
-  id: number;
-  name: string;
-  amount: string; //warum kriege ich den Error, wenn ich hier | null eingebe?
-  isNeeded: boolean;
-};
-
-// Listen-Zustände, kann zB um Filter erweitert werden
-type listState = {
-  articles: Article[];
-};
-
-// VERWENDETE VARIABLEN
-
-// Signal, das bei der Eingabe in die Input-Felder bearbeitet wird
-const newArticle = signal<Article>({
-  id: 0,
-  name: '',
-  amount: '',
-  isNeeded: true,
-});
-
-// Default zum Testen
-const Beispiel1: Article = {
-  id: 0,
-  name: 'Katzenfutter',
-  amount: '2 Säcke',
-  isNeeded: true,
-};
-const Beispiel2: Article = {
-  id: 1,
-  name: 'Entenfutter',
-  amount: '5 Portionen',
-  isNeeded: true,
-};
-
-// Zustand, den die Liste beim ersten Laden haben soll
-const initialState: listState = {
-  articles: [Beispiel1, Beispiel2],
-};
-
-// reaktiver Snapshot mit allem, was eine Shopping Liste können muss
-const shoppingListStore = signalStore(
-  // signalStore macht aus allen Properties der const initialState eigene read only-Signals
-  // wenn eine Property sich ändert, wird auch nur diese Property angefasst
-  withState(initialState),
-  withMethods(
-    // factory function, die einen bearbeitbaren Zustand herstellt (?)
-    (store) => ({
-      addArticle() {
-        const article: Article = {
-          id: store.articles().length,
-          name: newArticle().name,
-          amount: newArticle().amount,
-          isNeeded: true,
-        };
-
-        patchState(store, (state) => ({
-          articles: [...state.articles, article],
-        }));
-      },
-    }),
-  ),
-  // speichert den Zustand der Liste automatisch im Browser, wenn er sich ändert
-  // abrufbar ist er dann über den Key: articles
-  withStorageSync('articles'),
-);
+import { ShoppingListStore } from './app-store';
+import { ArticleForm } from './types';
 
 @Component({
   selector: 'app-root',
@@ -89,20 +18,26 @@ const shoppingListStore = signalStore(
         <form>
           <label>
             Neuer Artikel:
-            <input type="text" [formField]="newArticleForm.name" />
+            <input type="text" [formField]="articleForm.name" />
           </label>
           <label>
             Menge:
-            <input type="text" [formField]="newArticleForm.amount" />
+            <input type="text" [formField]="articleForm.amount" />
           </label>
-          <button type="submit" (click)="addItem()">Artikel hinzufügen</button>
+          <button type="submit" (click)="store.addArticle(formValues())">Artikel hinzufügen</button>
         </form>
       </section>
       <section id="einkaufsliste">
         <h3>Einkaufsliste</h3>
         <ul>
           @for (article of store.articles(); track article.id) {
-            <li>{{ article.name + ', ' + article.amount }}</li>
+            <li>
+              {{ article.name + ', ' + article.amount }}
+              <span
+                ><button (click)="store.updateArticle(article.id, formValues())">&#10003;</button>
+                <button (click)="store.removeArticle(article.id)">❌</button></span
+              >
+            </li>
           }
         </ul>
       </section>
@@ -111,19 +46,14 @@ const shoppingListStore = signalStore(
 })
 export class App {
   // Instanz des SignalStores, auf den zugegriffen werden soll
-  store = new shoppingListStore();
+  store = inject(ShoppingListStore);
+
+  formValues = signal<ArticleForm>({ name: '', amount: '', isDone: false });
 
   // Form-Objekt, schemaPath gibt Validation-Regeln an
-  newArticleForm = form(newArticle, (schemaPath) => {
+  articleForm = form(this.formValues, (schemaPath) => {
     required(schemaPath.name, {
       message: 'Na, also wenigstens ein Stichwort solltest du schon schreiben.',
     });
   });
-
-  // führt die addArticle Methode aus, wenn submit gedrückt wird
-  // sollte das nur tun, wenn die Felder befüllt sind
-  // speichert momentan trotzdem einfach das newArticle Signal dazu
-  addItem() {
-    this.store.addArticle();
-  }
 }
